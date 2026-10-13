@@ -13,9 +13,10 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^18.0.3",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "joi": "^18.2.9"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^1.14.10"
   }
 }
