@@ -101,6 +101,23 @@ test('GET /todos/:id returns one todo or a 404 when it is missing', async () => 
   assert.deepEqual(await missingResponse.json(), { message: 'Todo not found.' });
 });
 
+test('GET /todos/:id returns 400 for an invalid Mongo id', async () => {
+  Todo.findById = () => ({
+    lean: async () => {
+      const error = new Error('Invalid todo id.');
+      error.name = 'CastError';
+      throw error;
+    }
+  });
+
+  const response = await fetch(`${baseUrl}/todos/not-a-mongo-id`);
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    status: 'fail',
+    message: 'Invalid todo id.'
+  });
+});
+
 test('POST /todos validates input and returns the created todo', async () => {
   const todo = makeTodo('Write tests');
   Todo.create = async (values) => {

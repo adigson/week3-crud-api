@@ -52,7 +52,7 @@ app.use('/todos', (req, res, next) => {
 
 app.use((err, req, res, next) => {
   console.error('Request failed:', err);
-  const status = err.name === 'CastError' ? 404
+  const status = err.name === 'CastError' ? 400
     : err.name === 'ValidationError' ? 400
       : err.status || 500;
   res.status(status).json({

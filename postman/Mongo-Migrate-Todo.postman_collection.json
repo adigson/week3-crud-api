@@ -1,0 +1,123 @@
+{
+  "info": {
+    "name": "Mongo-Migrate Todo API",
+    "description": "Seeds three persistent todos and exercises list, completion filtering, item lookup, create, update, delete, and not-found behavior.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "todo1Id", "value": "" },
+    { "key": "lifecycleTodoId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Seed todo 1",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"task\": \"Week 3 seed todo 1\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/todos"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('created with 201', () => pm.response.to.have.status(201));",
+        "pm.collectionVariables.set('todo1Id', pm.response.json().id);"
+      ] } }]
+    },
+    {
+      "name": "Seed todo 2",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"task\": \"Week 3 seed todo 2\",\n  \"completed\": true\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/todos"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('created with 201', () => pm.response.to.have.status(201));"
+      ] } }]
+    },
+    {
+      "name": "Seed todo 3",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"task\": \"Week 3 seed todo 3\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/todos"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('created with 201', () => pm.response.to.have.status(201));"
+      ] } }]
+    },
+    {
+      "name": "List todos",
+      "request": { "method": "GET", "url": "{{baseUrl}}/todos" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('returns a list including the three seeds', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json().length).to.be.at.least(3);",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "Filter incomplete todos",
+      "request": { "method": "GET", "url": "{{baseUrl}}/todos?completed=false" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('returns only incomplete todos', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json().every(todo => todo.completed === false)).to.be.true;",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "Get seeded todo by ID",
+      "request": { "method": "GET", "url": "{{baseUrl}}/todos/{{todo1Id}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('returns the selected todo', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('todo1Id'));",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "Create CRUD test todo",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"task\": \"Temporary CRUD lifecycle check\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/todos"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('created with 201', () => pm.response.to.have.status(201));",
+        "pm.collectionVariables.set('lifecycleTodoId', pm.response.json().id);"
+      ] } }]
+    },
+    {
+      "name": "Update CRUD test todo",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"completed\": true\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/todos/{{lifecycleTodoId}}"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('updated todo is completed', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json().completed).to.be.true;",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "Delete CRUD test todo",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/todos/{{lifecycleTodoId}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('deleted with 204', () => pm.response.to.have.status(204));"
+      ] } }]
+    },
+    {
+      "name": "Confirm deleted todo is missing",
+      "request": { "method": "GET", "url": "{{baseUrl}}/todos/{{lifecycleTodoId}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('deleted todo returns 404', () => pm.response.to.have.status(404));"
+      ] } }]
+    }
+  ]
+}
