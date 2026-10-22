@@ -1,77 +1,69 @@
-const {
-  getTodos,
-  getTodoById,
-  addTodo,
-  updateTodo,
-  deleteTodo
-} = require('../data/todoData');
+const Todo = require('../models/Todo');
 
-const listTodos = (req, res) => {
+const toApiTodo = (todo) => ({
+  id: todo._id.toString(),
+  task: todo.task,
+  completed: todo.completed
+});
+
+const listTodos = async (req, res) => {
   const completedQuery = req.query.completed;
+  const filter = {};
 
-  if (completedQuery === undefined) {
-    return res.status(200).json(getTodos());
+  const normalizedQuery = completedQuery?.toLowerCase();
+  if (normalizedQuery === 'true' || normalizedQuery === 'false') {
+    filter.completed = normalizedQuery === 'true';
   }
 
-  const normalizedValue = String(completedQuery).toLowerCase();
-
-  if (normalizedValue === 'true' || normalizedValue === 'false') {
-    const filterValue = normalizedValue === 'true';
-    const filteredTodos = getTodos().filter((todo) => todo.completed === filterValue);
-    return res.status(200).json(filteredTodos);
-  }
-
-  return res.status(200).json(getTodos());
+  const todos = await Todo.find(filter).sort({ _id: 1 }).lean();
+  return res.status(200).json(todos.map(toApiTodo));
 };
 
-const getActiveTodos = (req, res) => {
-  const activeTodos = getTodos().filter((todo) => todo.completed === false);
-  res.status(200).json(activeTodos);
+const getActiveTodos = async (req, res) => {
+  const todos = await Todo.find({ completed: false }).sort({ _id: 1 }).lean();
+  return res.status(200).json(todos.map(toApiTodo));
 };
 
-const getTodo = (req, res) => {
-  const id = Number(req.params.id);
-  const todo = getTodoById(id);
+const getTodo = async (req, res) => {
+  const todo = await Todo.findById(req.params.id).lean();
 
   if (!todo) {
     return res.status(404).json({ message: 'Todo not found.' });
   }
 
-  return res.status(200).json(todo);
+  return res.status(200).json(toApiTodo(todo));
 };
 
-const createTodo = (req, res) => {
-  const { task } = req.body;
-
-  if (!task || typeof task !== 'string' || !task.trim()) {
-    return res.status(400).json({ error: 'Task field is required.' });
-  }
-
-  const newTodo = addTodo({
-    task: task.trim(),
-    completed: req.body.completed || false
+const createTodo = async (req, res) => {
+  const todo = await Todo.create({
+    task: req.body.task.trim(),
+    completed: req.body.completed ?? false
   });
-
-  return res.status(201).json(newTodo);
+  return res.status(201).json(toApiTodo(todo));
 };
 
-const patchTodo = (req, res) => {
-  const id = Number(req.params.id);
-  const updatedTodo = updateTodo(id, req.body);
+const patchTodo = async (req, res) => {
+  const updates = {};
+  if (req.body.task !== undefined) updates.task = req.body.task.trim();
+  if (req.body.completed !== undefined) updates.completed = req.body.completed;
 
-  if (!updatedTodo) {
+  const todo = await Todo.findByIdAndUpdate(req.params.id, updates, {
+    new: true,
+    runValidators: true
+  }).lean();
+
+  if (!todo) {
     return res.status(404).json({ message: 'Todo not found.' });
   }
 
-  return res.status(200).json(updatedTodo);
+  return res.status(200).json(toApiTodo(todo));
 };
 
-const removeTodo = (req, res) => {
-  const id = Number(req.params.id);
-  const deleted = deleteTodo(id);
+const removeTodo = async (req, res) => {
+  const todo = await Todo.findByIdAndDelete(req.params.id);
 
-  if (!deleted) {
-    return res.status(404).json({ error: 'Todo not found.' });
+  if (!todo) {
+    return res.status(404).json({ message: 'Todo not found.' });
   }
 
   return res.status(204).send();

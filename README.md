@@ -1,62 +1,55 @@
 # Week 3 CRUD API
 
-A simple Express.js API for managing todo items in memory.
+An Express API for managing todo items stored in MongoDB with Mongoose.
 
-## Features
-- Get all todos
-- Get a single todo by ID
-- Create a new todo with validation
-- Update a todo
-- Delete a todo
-- Filter active todos with `completed=false`
+## Setup
 
-## Installation
+1. Install dependencies:
 
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
-## Run the server
+2. Create a local `.env` file (it is ignored by Git) and set your Atlas URI:
 
-```bash
-npm run dev
-```
+   ```env
+   MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-host>/week3_todos?retryWrites=true&w=majority
+   PORT=3000
+   ```
 
-## Base URL
+   Replace the placeholders with your Atlas database user's credentials and cluster host. URL-encode special characters in the password. Never commit or share the completed URI.
 
-```text
-http://localhost:4000
-```
+3. Start the API:
 
-## Routes
+   ```bash
+   npm run dev
+   ```
 
-### GET /todos
-Returns all todo items.
+   The server starts even if MongoDB is paused or unreachable and retries the connection every 15 seconds. Check `GET /health` for database readiness; todo routes return `503 Service Unavailable` until the database connects. No in-memory fallback is used.
 
-### GET /todos/:id
-Returns a single todo item by ID.
+Base URL: `http://localhost:3000`
 
-### POST /todos
-Creates a new todo item.
+## Todo format
 
-Request body example:
+Todo responses use this shape:
 
 ```json
 {
+  "id": "MongoDB-generated id",
   "task": "Practice Express route modeling",
   "completed": false
 }
 ```
 
-### GET /todos/active
-Returns only todos where `completed` is `false`.
+## CRUD routes
 
-### PATCH /todos/:id
-Updates an existing todo item.
+| Method | Path | Behavior |
+| --- | --- | --- |
+| `GET` | `/todos` | List all todos. Optional `?completed=true` or `?completed=false` filters results. |
+| `GET` | `/todos/active` | List todos where `completed` is `false`. |
+| `GET` | `/todos/:id` | Get one todo by its MongoDB id. |
+| `POST` | `/todos` | Create a todo. Requires a `task` of at least 3 characters; `completed` is optional and defaults to `false`. |
+| `PATCH` | `/todos/:id` | Update `task`, `completed`, or both. At least one field is required. |
+| `DELETE` | `/todos/:id` | Delete a todo; returns `204 No Content` on success. |
 
-### DELETE /todos/:id
-Deletes a todo item.
-
-## Notes
-- The API uses an in-memory array for storage.
-- Data resets when the server restarts.
+Successful list and item responses are JSON arrays and objects, respectively. Invalid request bodies return `400` with a `{ "status": "fail", "message": "..." }` response. Missing todos return `404`; unexpected server errors return `500` with a generic message and are logged by the server.
